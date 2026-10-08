@@ -1,0 +1,267 @@
+\documentclass[a4paper,14pt]{extarticle}
+
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+
+% Геометрия страницы (по ГОСТ: левое 30 мм, правое 15 мм, верхнее 20 мм, нижнее 20 мм)
+\usepackage{geometry}
+\geometry{left=3cm, right=1.5cm, top=2cm, bottom=2cm}
+
+\usepackage{amsmath, amsfonts, amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{indentfirst}
+
+% Каждая секция (\section) всегда начинается с новой страницы
+\newcommand{\sectionbreak}{\clearpage}
+
+% Оформление заголовков секций
+\titleformat{\section}{\singlespacing\normalfont\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\singlespacing\normalfont\large\bfseries}{\thesubsection}{1em}{}
+
+% Настройка гиперссылок
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    filecolor=blue,      
+    urlcolor=blue,
+    pdfpagelabels=false
+}
+
+% --- Настройка стилей ---
+\onehalfspacing % Полуторный интервал
+\setlength{\parindent}{1.25cm} % Абзацный отступ
+\emergencystretch=3em % Защита от вылезания слов за границы полей
+
+\begin{document}
+\sloppy
+
+% --- Титульный лист ---
+\begin{titlepage}
+    \begin{center}
+        Министерство науки и высшего образования РФ\\
+        \vspace{0.4cm}
+        Федеральное государственное автономное образовательное учреждение\\
+        высшего образования «Казанский (Приволжский) федеральный университет»\\
+        \vspace{0.4cm}
+        ИНСТИТУТ ВЫЧИСЛИТЕЛЬНОЙ МАТЕМАТИКИ 
+        И ИНФОРМАЦИОННЫХ ТЕХНОЛОГИЙ\\
+        КАФЕДРА ПРИКЛАДНОЙ МАТЕМАТИКИ
+        И ИСКУССТВЕННОГО ИНТЕЛЛЕКТА\\
+        Направление: 01.03.04 – Прикладная математика\\
+        Профиль: Прикладная математика
+
+        
+        \vspace{3.5cm}
+        \textbf{\Large ОТЧЕТ ПО ПРОЕКТУ}\\
+        \vspace{0.5cm}
+        \textbf{\large «Многослойный персептрон»}\\
+        \vspace{0.8cm}
+        По курсу «Анализ на Python»
+    \end{center}
+
+    \vspace{2.5cm}
+    \begin{flushright}
+        \textbf{Выполнил:}\\
+        Студент группы 09-321\\
+        Суюндуков Г.Э.\\
+        \vspace{0.8cm}
+        \textbf{Проверил:}\\
+        Старший преподаватель\\
+        Гиниятова Д.Х.\\
+    \end{flushright}
+
+    \vfill
+    \begin{center}
+        Казань, 2026
+    \end{center}
+\end{titlepage}
+
+% --- Содержание ---
+\clearpage
+\pagenumbering{arabic}
+\setcounter{page}{2}
+\tableofcontents
+\clearpage
+
+% --- Введение ---
+\section{Введение}
+Целью данного проекта является реализация искусственной 
+нейронной сети прямого распространения (многослойного персептрона) 
+для решения задачи бинарной классификации. 
+Все алгоритмы, включая прямое и обратное распространение ошибки,
+а также оптимизаторы SGD и Adam, реализованы исключительно с использованием библиотеки линейной алгебры \texttt{NumPy}.
+В качестве набора данных используется датасет Breast Cancer Wisconsin. Набор содержит 569 образцов и 30 числовых признаков, описывающих характеристики ядер клеток. Целевая переменная (диагноз) имеет два класса: \textbf{M} (злокачественная) и \textbf{B} (доброкачественная). 
+
+Архитектура проекта состоит из трех модулей:
+\begin{enumerate}
+    \item \texttt{split.py} — разведочный анализ (EDA), предобработка и разделение данных;
+    \item \texttt{train.py} — реализация и обучение нейронной сети;
+    \item \texttt{predict.py} — прогнозирование на тестовой выборке и оценка качества модели.
+\end{enumerate}
+
+% --- Предобработка ---
+\section{Разведочный анализ и предобработка данных}
+\subsection{Разведочный анализ (EDA)}
+Анализ распределения классов показал наличие дисбаланса (рис. \ref{fig:class_dist}): 357 образцов 
+(62.7\%) относятся к классу доброкачественных опухолей, и 212 образцов 
+(37.3\%) — к злокачественным.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{plot_class_distribution.png}
+    \caption{Распределение классов доброкачественных (B) и злокачественных (M) опухолей в датасете.}
+    \label{fig:class_dist}
+\end{figure}
+
+Для визуального анализа признаков были 
+построены гистограммы и диаграммы размаха, позволившие выявить признаки, обладающие наибольшей разделяющей способностью (например, \texttt{concavity\_mean}). Также была вычислена матрица корреляций Пирсона $R$:
+\begin{equation}
+    R = \frac{\tilde{X}^T \tilde{X}}{n}
+\end{equation}
+где $\tilde{X}$ — центрированная и нормированная матрица признаков.
+
+\subsection{Стратифицированное разделение и устранение пропусков}
+Данные были разделены на обучающую (80\%) и валидационную (20\%) выборки с сохранением пропорций классов (стратификацией). Для предотвращения \textit{утечки данных (data leakage)} разделение производилось до этапа нормализации и заполнения пропусков.
+
+Заполнение возможных пропущенных значений осуществлялось не средним значением по всему датасету, а средним значением по соответствующему классу, вычисленным \textbf{только на обучающей выборке}. Это позволяет сохранить распределения признаков для каждого класса и не допустить смешивания характеристик доброкачественных и злокачественных клеток.
+
+\subsection{Нормализация признаков}
+Признаки имеют различные масштабы (например, \texttt{area\_mean} достигает 2500, в то время как \texttt{smoothness\_mean} находится в диапазоне 0.05-0.16). Для обеспечения стабильной и быстрой сходимости градиентного спуска применялась Z-score нормализация:
+\begin{equation}
+    z = \frac{x - \mu}{\sigma}
+\end{equation}
+Параметры $\mu$ и $\sigma$ вычислялись строго по обучающей выборке и затем применялись к валидационной. 
+
+Целевая переменная была закодирована: M $\rightarrow$ 1, B $\rightarrow$ 0.
+
+% --- Архитектура ---
+\section{Архитектура нейронной сети и алгоритм обучения}
+\subsection{Прямое распространение (Forward Pass)}
+Был реализован многослойный персептрон (MLP), принимающий на вход 30 признаков. Формула вычисления активаций $l$-го слоя:
+\begin{equation}
+    Z^{[l]} = A^{[l-1]} W^{[l]} + b^{[l]}, \quad A^{[l]} = g(Z^{[l]})
+\end{equation}
+В качестве функции активации скрытых слоев используется сигмоида:
+\begin{align}
+    \sigma(z) &= \frac{1}{1 + e^{-z}} \\
+    \sigma'(z) &= \sigma(z)(1 - \sigma(z))
+\end{align}
+На выходном слое (2 нейрона) применяется функция Softmax для получения вероятностного распределения по классам:
+\begin{equation}
+    \text{softmax}(z_k) = \frac{e^{z_k - \max z}}{\sum_j e^{z_j - \max z}}
+\end{equation}
+Вычитание максимума обеспечивает числовую стабильность вычислений.
+
+Для инициализации весовых матриц использовался метод He Uniform:
+\begin{equation}
+    W \sim U\left(-\sqrt{\frac{6}{n_{\text{in}}}}, \sqrt{\frac{6}{n_{\text{in}}}}\right)
+\end{equation}
+
+\subsection{Функция потерь и обратное распространение}
+В качестве функции потерь выбрана Categorical Cross-Entropy:
+\begin{equation}
+    \mathcal{L} = -\frac{1}{m} \sum_{i=1}^{m} \sum_{k=0}^{1} y_{ik} \log(\hat{p}_{ik})
+\end{equation}
+где $y_{ik}$ — one-hot представление истинной метки класса, $\hat{p}_{ik}$ — предсказанная Softmax-вероятность.
+
+Комбинация Softmax и Cross-Entropy дает численно стабильное выражение для градиента на последнем слое:
+\begin{equation}
+    \delta^{[L]} = \frac{\partial \mathcal{L}}{\partial Z^{[L]}} = \hat{p} - y_{\text{one-hot}}
+\end{equation}
+Градиенты для скрытых слоев вычисляются по правилу цепочки:
+\begin{equation}
+    \delta^{[l-1]} = \left(\delta^{[l]} (W^{[l]})^T\right) \odot \sigma'(Z^{[l-1]})
+\end{equation}
+Градиенты весов и смещений:
+\begin{align}
+    \frac{\partial \mathcal{L}}{\partial W^{[l]}} &= \frac{1}{m}(A^{[l-1]})^T \delta^{[l]} \\
+    \frac{\partial \mathcal{L}}{\partial b^{[l]}} &= \frac{1}{m}\sum \delta^{[l]}
+\end{align}
+
+\subsection{Оптимизаторы: SGD и Adam}
+Для обновления весов реализовано два алгоритма.
+
+\textbf{Мини-батч стохастический градиентный спуск (SGD)}:
+\begin{equation}
+    W \leftarrow W - \eta \frac{\partial \mathcal{L}}{\partial W}
+\end{equation}
+
+\textbf{Adam (Adaptive Moment Estimation)}:
+\begin{align}
+    m_t &= \beta_1 m_{t-1} + (1 - \beta_1) g_t \\
+    v_t &= \beta_2 v_{t-1} + (1 - \beta_2) g_t^2 \\
+    \hat{m}_t &= \frac{m_t}{1 - \beta_1^t} \\
+    \hat{v}_t &= \frac{v_t}{1 - \beta_2^t} \\
+    W &\leftarrow W - \frac{\eta}{\sqrt{\hat{v}_t} + \epsilon} \hat{m}_t
+\end{align}
+Алгоритм Adam адаптирует шаг обучения для каждого параметра, что значительно ускоряет сходимость.
+
+% --- Результаты ---
+\section{Оценка качества модели}
+Обучение проводилось на архитектуре с двумя скрытыми слоями (64 и 32 нейрона) размером мини-батча 32. 
+Основная используемая метрика для бинарной классификации — Binary Cross-Entropy (BCE). Для детального анализа использовались метрики Accuracy, Precision, Recall и F1-score.
+
+\subsection{Сравнение оптимизаторов}
+Сравнение эффективности оптимизаторов SGD ($\eta = 0.01$) и Adam ($\eta = 0.001$) показало превосходство адаптивного алгоритма:
+
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{l c c c}
+        \toprule
+        \textbf{Оптимизатор} & \textbf{Эпохи} & \textbf{Accuracy (Val)} & \textbf{BCE Loss (Val)} \\
+        \midrule
+        SGD & 50 & 93.81\% & 0.264 \\
+        Adam & 100 & \textbf{98.23\%} & \textbf{0.114} \\
+        \bottomrule
+    \end{tabular}
+    \caption{Сравнение оптимизаторов на валидационной выборке}
+\end{table}
+
+\subsection{Анализ матрицы ошибок}
+Для лучшей модели (Adam) была построена матрица ошибок (Confusion Matrix) на валидационной выборке ($N=113$), представленная в таблице 2 и на рисунке \ref{fig:conf_matrix}.
+
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{l c c}
+        \toprule
+         & \textbf{Предсказан B} & \textbf{Предсказан M} \\
+        \midrule
+        \textbf{Истинный B} & 71 (TN) & 0 (FP) \\
+        \textbf{Истинный M} & 2 (FN) & 40 (TP) \\
+        \bottomrule
+    \end{tabular}
+    \caption{Матрица ошибок}
+\end{table}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.65\textwidth]{plot_confusion_matrix.png}
+    \caption{Визуализация матрицы ошибок для модели, обученной оптимизатором Adam.}
+    \label{fig:conf_matrix}
+\end{figure}
+
+Результаты показывают отсутствие ложных срабатываний (Precision для класса M равен 1.0). Из 42 злокачественных опухолей модель успешно выявила 40 (Recall = 0.952), F1-мера для целевого класса составила 0.975. Отсутствие переобучения подтверждается тем, что кривые обучения (Loss и Accuracy) для обучающей и валидационной выборок сходятся на графиках синхронно (рис. \ref{fig:learning_curves}).
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1\textwidth]{plot_learning_curves.png}
+    \caption{Кривые обучения функции потерь (слева) и точности (справа) для оптимизатора Adam. Сходимость тренировочных и валидационных кривых указывает на отсутствие переобучения.}
+    \label{fig:learning_curves}
+\end{figure}
+
+\section{Заключение}
+В ходе выполнения проекта была с нуля разработана полностью 
+функциональная библиотека для создания нейронных сетей, 
+поддерживающая абстракции слоев, функций активации и оптимизаторов. 
+Модель многослойного персептрона успешно решила задачу классификации
+ клеток молочной железы, достигнув точности в 98.23\% на отложенной 
+ выборке. Использование современных подходов (He Uniform, 
+ Softmax+Cross-Entropy, нормализация без утечки данных, Adam) 
+ доказало свою эффективность.
+
+\end{document}

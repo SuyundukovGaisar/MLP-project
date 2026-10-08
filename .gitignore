@@ -1,0 +1,28 @@
+# Байткод и кэш Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Временные файлы компиляции LaTeX
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+
+# Графики и временные изображения
+*.png
+*.jpg
+*.jpeg
+
+# Личные гайды и шпаргалки к защите
+guide*.md
+*guide*.md
+
+# Среды разработки
+.vscode/
+.idea/
+.venv/
+env/
